@@ -1,0 +1,2 @@
+# BytesParser
+Python bytes parser
