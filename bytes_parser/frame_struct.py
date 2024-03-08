@@ -1,48 +1,68 @@
 from dataclasses import dataclass, field
 from typing import Callable, Literal
+from pandas import DataFrame
 
 
-def dummy(val: bytes, str_format: str, *_, **kwargs) -> str:
-    prefix = ''
-    if 'X' in str_format:
-        prefix = '0x'
-    result: int = int.from_bytes(val, kwargs.get('byte_order', 'big'),
-                                 signed=kwargs.get('signed', False))
-    return prefix + f"{result:{str_format}}"
+def simple_check(val: bytes, struct: "Row") -> str:
+    result: int = int.from_bytes(val, struct.byte_order, signed=struct.signed)
+    if struct.min_value and result < struct.min_value:
+        struct.errors += 1
+        struct.is_valid = False
+    if struct.max_value and result > struct.max_value:
+        struct.errors += 1
+        struct.is_valid = False
+    return struct.prefix + f"{result:{struct.str_format}}"
 
 
 @dataclass
 class Row:
     label: str
     size: int
-    args: list = field(default_factory=lambda: ['d'])
-    parser: Callable[[bytes, str, list, dict],
-                     str | list[tuple[str, str]]] = dummy
-    kwargs: dict = field(default_factory=lambda: {})
+    str_format: str = 'd'
+    prefix: str = ''
+    parser: Callable[[bytes, "Row"], str | list[tuple[str, str]]] = simple_check
+    min_value: float | None = None
+    max_value: float | None = None
+    byte_order: Literal['big', 'little'] = 'big'
+    nested_fields: list[str] = field(default_factory=lambda: [])
+    signed: bool = False
+    errors: int = 0
+    is_valid: bool = True
 
     def set_byte_order(self, byte_order: Literal['big', 'little']) -> None:
-        self.kwargs.update({'byte_order': byte_order})
+        self.byte_order = byte_order
+        if 'X' in self.str_format:
+            self.prefix = '0x'
 
 
 class Frame:
     def __init__(self, frame_type: str, rows: list[Row],
                  byte_order: Literal['big', 'little'] = 'big') -> None:
         self.frame_type: str = frame_type
-        self._index = 0
-        self.size_ptr = 0
         self.rows: list[Row] = rows
         self.full_size: int = sum(row.size for row in rows)
         [row.set_byte_order(byte_order) for row in self.rows]
 
-    def __iter__(self):
-        return self
+    def parse(self, raw_data: bytes) -> DataFrame:
+        table_rows: list[tuple[str, str, bool, int]] = []
+        _size_ptr = 0
+        _index = 0
+        for row in self.rows:
+            _size_ptr += self.rows[_index].size
+            _index += 1
+            data: str | list[tuple[str, str]] = ''
+            if row.size > 0:
+                _start: int = _size_ptr - row.size
+                data = row.parser(raw_data[_start: _size_ptr], row)
+            else:
+                data = row.parser(raw_data[_size_ptr:], row)
+            if isinstance(data, str):
+                table_rows.append((row.label, data, row.is_valid, row.errors))
+            else:
+                table_rows.extend([(*val, row.is_valid, row.errors)
+                                   for val in data])
+        return DataFrame(table_rows, columns=['Name', 'Value', 'IsErr', 'ErrCnt'])
 
-    def __next__(self) -> Row:
-        if self._index < len(self.rows):
-            val: Row = self.rows[self._index]
-            self.size_ptr += self.rows[self._index].size
-            self._index += 1
-            return val
-        self.size_ptr = 0
-        self._index = 0
-        raise StopIteration
+    def clear_errors(self) -> None:
+        for row in self.rows:
+            row.errors = 0
