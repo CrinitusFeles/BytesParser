@@ -66,3 +66,10 @@ class Frame:
     def clear_errors(self) -> None:
         for row in self.rows:
             row.errors = 0
+
+    def __str__(self):
+        table_rows: list[tuple[str, int]] = []
+        for row in self.rows:
+            table_rows.append((row.label, row.size))
+        df = DataFrame(table_rows, columns=['Label', 'Size'])
+        return df.to_string() + f'\nFull size: {self.full_size}'
