@@ -3,15 +3,14 @@ from typing import Callable, Literal
 from pandas import DataFrame
 
 
-def simple_check(val: bytes, struct: "Row") -> str:
-    result: int = int.from_bytes(val, struct.byte_order, signed=struct.signed)
-    if struct.min_value and result < struct.min_value:
-        struct.errors += 1
-        struct.is_valid = False
-    if struct.max_value and result > struct.max_value:
-        struct.errors += 1
-        struct.is_valid = False
-    return struct.prefix + f"{result:{struct.str_format}}"
+def simple_check(val: bytes, field: "Row") -> str:
+    result: int = int.from_bytes(val, field.byte_order, signed=field.signed)
+    if field.min_value <= result <= field.max_value:
+        field.is_valid = True
+    else:
+        field.errors += 1
+        field.is_valid = False
+    return field.prefix + f"{result:{field.str_format}}"
 
 
 @dataclass
@@ -21,8 +20,8 @@ class Row:
     str_format: str = 'd'
     prefix: str = ''
     parser: Callable[[bytes, "Row"], str | list[tuple[str, str]]] = simple_check
-    min_value: float | None = None
-    max_value: float | None = None
+    min_value: float = float('-inf')
+    max_value: float = float('inf')
     byte_order: Literal['big', 'little'] = 'big'
     nested_fields: list[str] = field(default_factory=lambda: [])
     signed: bool = False
