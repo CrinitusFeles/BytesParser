@@ -32,6 +32,8 @@ class Row:
         self.byte_order = byte_order
         if 'X' in self.str_format:
             self.prefix = '0x'
+        elif 'b' in self.str_format:
+            self.prefix = '0b'
 
 
 class Frame:
@@ -66,7 +68,7 @@ class Frame:
         for row in self.rows:
             row.errors = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         table_rows: list[tuple[str, int]] = []
         for row in self.rows:
             table_rows.append((row.label, row.size))
