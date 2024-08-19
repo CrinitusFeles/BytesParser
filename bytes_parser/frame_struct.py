@@ -41,13 +41,15 @@ class Row:
 
 class Frame:
     def __init__(self, frame_type: str, rows: list[Row],
-                 byte_order: Literal['big', 'little'] = 'big') -> None:
+                 byte_order: Literal['big', 'little'] = 'big',
+                 use_frame_type_as_header: bool = True) -> None:
         self.frame_type: str = frame_type
         self.rows: list[Row] = rows
         self.full_size: int = sum(row.size for row in rows)
         [row._set_byte_order(byte_order) for row in self.rows
          if not row.byte_order]
         [row._set_prefix() for row in self.rows]
+        self.use_frame_type_as_header: bool = use_frame_type_as_header
 
     def parse(self, raw_data: bytes) -> DataFrame:
         table_rows: list[tuple[str, str, bool, int]] = []
@@ -70,7 +72,8 @@ class Frame:
             else:
                 table_rows.extend([(*val, row.is_valid, row.errors)
                                    for val in data])
-        return DataFrame(table_rows, columns=['Name', 'Value', 'IsOK',
+        header: str = ('Name', self.frame_type)[self.use_frame_type_as_header]
+        return DataFrame(table_rows, columns=[header, 'Value', 'IsOK',
                                               'ErrCnt'])
 
     def clear_errors(self) -> None:
