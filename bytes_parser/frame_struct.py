@@ -29,8 +29,10 @@ class Row:
     errors: int = 0
     is_valid: bool = True
 
-    def set_byte_order(self, byte_order: Literal['big', 'little']) -> None:
+    def _set_byte_order(self, byte_order: Literal['big', 'little']) -> None:
         self.byte_order = byte_order
+
+    def _set_prefix(self):
         if 'X' in self.str_format:
             self.prefix = '0x'
         elif 'b' in self.str_format:
@@ -43,8 +45,9 @@ class Frame:
         self.frame_type: str = frame_type
         self.rows: list[Row] = rows
         self.full_size: int = sum(row.size for row in rows)
-        [row.set_byte_order(byte_order) for row in self.rows
+        [row._set_byte_order(byte_order) for row in self.rows
          if not row.byte_order]
+        [row._set_prefix() for row in self.rows]
 
     def parse(self, raw_data: bytes) -> DataFrame:
         table_rows: list[tuple[str, str, bool, int]] = []
