@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Callable, Literal
+from loguru import logger
 from pandas import DataFrame
 
 
@@ -48,6 +49,9 @@ class Frame:
         table_rows: list[tuple[str, str, bool, int]] = []
         _size_ptr = 0
         _index = 0
+        if self.full_size != len(raw_data):
+            logger.warning(f'Frame size ({self.full_size}) and raw_data '\
+                           f'({len(raw_data)}) are different!')
         for row in self.rows:
             _size_ptr += self.rows[_index].size
             _index += 1
@@ -62,7 +66,8 @@ class Frame:
             else:
                 table_rows.extend([(*val, row.is_valid, row.errors)
                                    for val in data])
-        return DataFrame(table_rows, columns=['Name', 'Value', 'IsErr', 'ErrCnt'])
+        return DataFrame(table_rows, columns=['Name', 'Value', 'IsOK',
+                                              'ErrCnt'])
 
     def clear_errors(self) -> None:
         for row in self.rows:

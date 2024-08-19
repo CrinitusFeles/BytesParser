@@ -2,7 +2,7 @@
 import random
 
 from pandas import DataFrame
-from bytes_parser.frame_struct import Frame, Row
+from bytes_parser import Frame, Row
 
 
 def bit_fields( val: bytes, struct: Row) -> list[tuple[str, str]]:
