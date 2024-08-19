@@ -23,7 +23,7 @@ class Row:
     parser: Callable[[bytes, "Row"], str | list[tuple[str, str]]] = simple_check
     min_value: float = float('-inf')
     max_value: float = float('inf')
-    byte_order: Literal['big', 'little'] = 'big'
+    byte_order: Literal['big', 'little'] = ''  # type: ignore
     nested_fields: list[str] = field(default_factory=lambda: [])
     signed: bool = False
     errors: int = 0
@@ -43,7 +43,8 @@ class Frame:
         self.frame_type: str = frame_type
         self.rows: list[Row] = rows
         self.full_size: int = sum(row.size for row in rows)
-        [row.set_byte_order(byte_order) for row in self.rows]
+        [row.set_byte_order(byte_order) for row in self.rows
+         if not row.byte_order]
 
     def parse(self, raw_data: bytes) -> DataFrame:
         table_rows: list[tuple[str, str, bool, int]] = []
