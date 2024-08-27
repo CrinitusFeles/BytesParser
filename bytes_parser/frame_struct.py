@@ -21,6 +21,8 @@ class Row:
     str_format: str = 'd'
     prefix: str = ''
     parser: Callable[[bytes, "Row"], str | list[tuple[str, str]]] = simple_check
+    args: tuple = ()
+    kwargs: dict = {}
     min_value: float = float('-inf')
     max_value: float = float('inf')
     byte_order: Literal['big', 'little'] = ''  # type: ignore
