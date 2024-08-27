@@ -22,7 +22,7 @@ class Row:
     prefix: str = ''
     parser: Callable[[bytes, "Row"], str | list[tuple[str, str]]] = simple_check
     args: tuple = ()
-    kwargs: dict = {}
+    kwargs: dict | None = None
     min_value: float = float('-inf')
     max_value: float = float('inf')
     byte_order: Literal['big', 'little'] = ''  # type: ignore

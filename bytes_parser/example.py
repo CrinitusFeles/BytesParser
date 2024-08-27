@@ -1,9 +1,21 @@
 
 import random
+from typing import Callable
 
 from pandas import DataFrame
 from bytes_parser import Frame, Row
 
+def get_field():
+    return -30
+
+def my_parser(data: bytes, row: Row) -> str:
+    if row.kwargs:
+        callback: Callable | None= row.kwargs.get('callback', None)
+        if callback:
+            field = callback()
+            if field < 0:
+                return '-30'
+    return '0'
 
 def bit_fields( val: bytes, struct: Row) -> list[tuple[str, str]]:
     def calc_bit(pos: int) -> int:
@@ -18,7 +30,7 @@ my_frame: Frame = Frame('my_frame_1', [
     Row('FIELD_2', 2, 'b'),
     Row('FIELD_3', 2, 'b'),
     Row('FIELD_4', 2),
-    Row('FIELD_5', 4),
+    Row('FIELD_5', 4, parser=my_parser, kwargs={'callback': get_field}),
     Row('FIELD_6', 4),
     Row("BITFIELD", 2, 'd', parser=bit_fields,
         nested_fields=[*[f"BIT{i}" for i in range(16)]]),
