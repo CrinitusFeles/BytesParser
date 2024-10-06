@@ -30,6 +30,7 @@ class Row:
     signed: bool = False
     errors: int = 0
     is_valid: bool = True
+    _offset: int = 0
 
     def _set_byte_order(self, byte_order: Literal['big', 'little']) -> None:
         self.byte_order = byte_order
@@ -52,6 +53,13 @@ class Frame:
          if not row.byte_order]
         [row._set_prefix() for row in self.rows]
         self.use_frame_type_as_header: bool = use_frame_type_as_header
+        self.update_offsets()
+
+    def update_offsets(self):
+        offset = 0
+        for prev_row, row in zip(self.rows[:-1], self.rows[1:]):
+            offset += prev_row.size
+            row._offset = offset
 
     def parse(self, raw_data: bytes) -> DataFrame:
         table_rows: list[tuple[str, str, bool, int]] = []
@@ -83,8 +91,8 @@ class Frame:
             row.errors = 0
 
     def __str__(self) -> str:
-        table_rows: list[tuple[str, int]] = []
+        table_rows: list[tuple[str, int, int]] = []
         for row in self.rows:
-            table_rows.append((row.label, row.size))
-        df = DataFrame(table_rows, columns=['Label', 'Size'])
+            table_rows.append((row.label, row.size, row._offset))
+        df = DataFrame(table_rows, columns=['Label', 'Size', 'Offset'])
         return df.to_string() + f'\nFull size: {self.full_size}'
