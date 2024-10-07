@@ -5,24 +5,19 @@ from typing import Callable
 from pandas import DataFrame
 from bytes_parser import Frame, Row
 
+
 def get_field():
     return -30
 
-def my_parser(data: bytes, row: Row) -> str:
+
+def my_parser(row: Row) -> int:
     if row.kwargs:
         callback: Callable | None= row.kwargs.get('callback', None)
         if callback:
             field = callback()
             if field < 0:
-                return '-30'
-    return '0'
-
-def bit_fields( val: bytes, struct: Row) -> list[tuple[str, str]]:
-    def calc_bit(pos: int) -> int:
-        return ((int.from_bytes(val) & (0x01 << pos)) >> pos)
-
-    return [(label, f"{calc_bit(i):{struct.str_format}}")
-            for i, label in enumerate(struct.nested_fields)]
+                return -30
+    return 0
 
 
 my_frame: Frame = Frame('my_frame_1', [
@@ -32,8 +27,8 @@ my_frame: Frame = Frame('my_frame_1', [
     Row('FIELD_4', 2),
     Row('FIELD_5', 4, parser=my_parser, kwargs={'callback': get_field}),
     Row('FIELD_6', 4),
-    Row("BITFIELD", 2, 'd', parser=bit_fields,
-        nested_fields=[*[f"BIT{i}" for i in range(16)]]),
+    Row("BITFIELD", 2, 'X',
+        bit_fields={i: f"BIT{i}" for i in range(16)}, show_bits='all'),
     Row('CRC8', 1, 'X'),
 ], 'little')
 

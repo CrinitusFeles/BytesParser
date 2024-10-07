@@ -1,17 +1,46 @@
-from dataclasses import dataclass, field
-from typing import Callable, Literal
+from dataclasses import field, dataclass
+from typing import Any, Callable, Iterable, Literal
 from loguru import logger
 from pandas import DataFrame
 
 
-def simple_check(val: bytes, field: "Row") -> str:
-    result: int = int.from_bytes(val, field.byte_order, signed=field.signed)
-    if field.min_value <= result <= field.max_value:
-        field.is_valid = True
-    else:
-        field.errors += 1
-        field.is_valid = False
-    return field.prefix + f"{result:{field.str_format}}"
+def calc_bit(data: bytes, pos: int) -> int:
+    return ((int.from_bytes(data) & (0x01 << pos)) >> pos)
+
+
+def bit_fields(row: "Row") -> list[str]:
+    repr_list: list[str] = []
+    for pos, label in row.bit_fields.items():
+        bit: int = calc_bit(data=row._raw_val, pos=pos)
+        if bit == 0 and row.show_bits == '1':
+            continue
+        elif bit == 1 and row.show_bits == '0':
+            continue
+        else:
+            repr_list.append(f"{label}: {bit}")
+    return repr_list
+
+
+def parse(row: "Row") -> Any:
+    result: int = int.from_bytes(row._raw_val, row.byte_order,
+                                 signed=row.signed)
+    return result
+
+
+def represent(parsed_val: Any, row: "Row") -> str:
+    result: str = f"{row.prefix}{parsed_val:{row.str_format}}"
+
+    if len(row.bit_fields) > 0 and row.show_bits != 'none':
+        bit_list: list[str] = bit_fields(row)
+        result = '\n'.join([result, *bit_list])
+    return result
+
+
+def validate(parsed_val: int | float, row: "Row") -> bool:
+    try:
+        return row.min_value <= parsed_val <= row.max_value
+    except Exception:
+        return True
 
 
 @dataclass
@@ -20,37 +49,48 @@ class Row:
     size: int
     str_format: str = 'd'
     prefix: str = ''
-    parser: Callable[[bytes, "Row"], str | list[tuple[str, str]]] = simple_check
-    args: tuple = ()
-    kwargs: dict | None = None
+    parser: Callable[["Row"], Any] = parse
+    validator: Callable[[Any, "Row"], bool] = validate
+    representer: Callable[[Any, "Row"], str] = represent
+    args: Iterable = ()
+    kwargs: dict = field(default_factory=dict)
     min_value: float = float('-inf')
     max_value: float = float('inf')
-    byte_order: Literal['big', 'little'] = ''  # type: ignore
-    nested_fields: list[str] = field(default_factory=lambda: [])
+    byte_order: Literal['big', 'little'] = 'big'
+    bit_fields: dict[int, str] = field(default_factory=dict)
+    show_bits: Literal['all', '1', '0', 'none'] = '1'
     signed: bool = False
     errors: int = 0
     is_valid: bool = True
+    _raw_val: bytes = b''
     _offset: int = 0
 
     def _set_byte_order(self, byte_order: Literal['big', 'little']) -> None:
         self.byte_order = byte_order
 
-    def _set_prefix(self):
+    def _set_prefix(self) -> None:
         if 'X' in self.str_format:
             self.prefix = '0x'
+            self.str_format = f'0{self.size * 2}X'
         elif 'b' in self.str_format:
             self.prefix = '0b'
+
+    def _set_bits_repr(self, mode: Literal['all', '1', '0', 'none']):
+        self.show_bits = mode
 
 
 class Frame:
     def __init__(self, frame_type: str, rows: list[Row],
                  byte_order: Literal['big', 'little'] = 'big',
+                 bits_repr_mode: Literal['all', '1', '0', 'none'] | None = None,
                  use_frame_type_as_header: bool = True) -> None:
         self.frame_type: str = frame_type
         self.rows: list[Row] = rows
         self.full_size: int = sum(row.size for row in rows)
         [row._set_byte_order(byte_order) for row in self.rows
          if not row.byte_order]
+        if bits_repr_mode:
+            [row._set_bits_repr(bits_repr_mode) for row in self.rows]
         [row._set_prefix() for row in self.rows]
         self.use_frame_type_as_header: bool = use_frame_type_as_header
         self.update_offsets()
@@ -62,29 +102,30 @@ class Frame:
             row._offset = offset
 
     def parse(self, raw_data: bytes) -> DataFrame:
+        table_rows: list[tuple] = self.parse_tuple(raw_data)
+        header: str = ('Name', self.frame_type)[self.use_frame_type_as_header]
+        return DataFrame(table_rows, columns=[header, 'Value', 'IsOK',
+                                              'ErrCnt'])
+
+    def parse_tuple(self, raw_data: bytes) -> list[tuple[str, str, bool, int]]:
         table_rows: list[tuple[str, str, bool, int]] = []
-        _size_ptr = 0
-        _index = 0
         if self.full_size != len(raw_data):
             logger.warning(f'Frame size ({self.full_size}) and raw_data '\
                            f'({len(raw_data)}) are different!')
         for row in self.rows:
-            _size_ptr += self.rows[_index].size
-            _index += 1
-            data: str | list[tuple[str, str]] = ''
             if row.size > 0:
-                _start: int = _size_ptr - row.size
-                data = row.parser(raw_data[_start: _size_ptr], row)
+                row._raw_val = raw_data[row._offset: row._offset + row.size]
+                data: Any = row.parser(row)
+                row.is_valid = row.validator(data, row)
+                if not row.is_valid:
+                    row.errors += 1
+                repr_data: str = row.representer(data, row)
             else:
-                data = row.parser(raw_data[_size_ptr:], row)
-            if isinstance(data, str):
-                table_rows.append((row.label, data, row.is_valid, row.errors))
-            else:
-                table_rows.extend([(*val, row.is_valid, row.errors)
-                                   for val in data])
-        header: str = ('Name', self.frame_type)[self.use_frame_type_as_header]
-        return DataFrame(table_rows, columns=[header, 'Value', 'IsOK',
-                                              'ErrCnt'])
+                row._raw_val = raw_data[row._offset:]
+                data = row.parser(row)
+                repr_data = row.representer(data, row)
+            table_rows.append((row.label, repr_data, row.is_valid, row.errors))
+        return table_rows
 
     def clear_errors(self) -> None:
         for row in self.rows:
