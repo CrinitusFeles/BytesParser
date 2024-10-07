@@ -20,7 +20,7 @@ def bit_fields(row: "Row") -> list[Bit]:
     for pos, bit in row.bit_fields.items():
         val: int = int.from_bytes(row.raw_val, byteorder=row.byte_order)
         bit._value = ((val & (0x01 << pos)) >> pos)
-        if bit._value == int(bit.ok_condition):
+        if bit._value != int(bit.ok_condition):
             bit.label = f'    $[{pos}]{bit.label}'
             bit._repr = f'{int(bit._value)}'
             repr_list.append(bit)
