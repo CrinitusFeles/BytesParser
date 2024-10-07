@@ -11,7 +11,7 @@ def calc_bit(data: bytes, pos: int) -> int:
 def bit_fields(row: "Row") -> list[str]:
     repr_list: list[str] = []
     for pos, label in row.bit_fields.items():
-        bit: int = calc_bit(data=row._raw_val, pos=pos)
+        bit: int = calc_bit(data=row.raw_val, pos=pos)
         if bit == 0 and row.show_bits == '1':
             continue
         elif bit == 1 and row.show_bits == '0':
@@ -22,7 +22,7 @@ def bit_fields(row: "Row") -> list[str]:
 
 
 def parse(row: "Row") -> Any:
-    result: int = int.from_bytes(row._raw_val, row.byte_order,
+    result: int = int.from_bytes(row.raw_val, row.byte_order,
                                  signed=row.signed)
     return result
 
@@ -62,7 +62,7 @@ class Row:
     signed: bool = False
     errors: int = 0
     is_valid: bool = True
-    _raw_val: bytes = b''
+    raw_val: bytes = b''
     _offset: int = 0
 
     def _set_byte_order(self, byte_order: Literal['big', 'little']) -> None:
@@ -114,14 +114,14 @@ class Frame:
                            f'({len(raw_data)}) are different!')
         for row in self.rows:
             if row.size > 0:
-                row._raw_val = raw_data[row._offset: row._offset + row.size]
+                row.raw_val = raw_data[row._offset: row._offset + row.size]
                 data: Any = row.parser(row)
                 row.is_valid = row.validator(data, row)
                 if not row.is_valid:
                     row.errors += 1
                 repr_data: str = row.representer(data, row)
             else:
-                row._raw_val = raw_data[row._offset:]
+                row.raw_val = raw_data[row._offset:]
                 data = row.parser(row)
                 repr_data = row.representer(data, row)
             table_rows.append((row.label, repr_data, row.is_valid, row.errors))
