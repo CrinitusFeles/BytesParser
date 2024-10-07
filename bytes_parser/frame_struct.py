@@ -74,6 +74,7 @@ class Row:
             self.str_format = f'0{self.size * 2}X'
         elif 'b' in self.str_format:
             self.prefix = '0b'
+            self.str_format = f'0{self.size * 8}b'
 
     def _set_bits_repr(self, mode: Literal['all', '1', '0', 'none']):
         self.show_bits = mode
