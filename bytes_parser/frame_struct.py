@@ -5,10 +5,6 @@ from loguru import logger
 from pandas import DataFrame
 
 
-def calc_bit(data: bytes, pos: int) -> int:
-    return ((int.from_bytes(data) & (0x01 << pos)) >> pos)
-
-
 class Bit:
     label: str
     ok_condition: bool
@@ -22,7 +18,8 @@ class Bit:
 def bit_fields(row: "Row") -> list[Bit]:
     repr_list: list[Bit] = []
     for pos, bit in row.bit_fields.items():
-        bit._value = calc_bit(data=row.raw_val, pos=pos)
+        val: int = int.from_bytes(row.raw_val, byteorder=row.byte_order)
+        bit._value = ((val & (0x01 << pos)) >> pos)
         if bit._value == int(bit.ok_condition):
             bit.label = f'    $[{pos}]{bit.label}'
             bit._repr = f'{int(bit._value)}'
@@ -61,9 +58,8 @@ class Row:
     kwargs: dict = field(default_factory=dict)
     min_value: float = float('-inf')
     max_value: float = float('inf')
-    byte_order: Literal['big', 'little'] = 'big'
+    byte_order: Literal['big', 'little'] = '' # type: ignore
     bit_fields: dict[int, Bit] = field(default_factory=dict)
-    show_bitfield: bool = True
     signed: bool = False
     errors: int = 0
     is_valid: bool = True
@@ -144,8 +140,9 @@ class Frame:
                 if not row.is_valid:
                     row.errors += 1
                 repr_data: str = row.representer(row)
-                if len(row.bit_fields) > 0 and row.show_bitfield:
-                    bit_list = bit_fields(deepcopy(row))
+                if len(row.bit_fields) > 0:
+                    val = deepcopy(row)
+                    bit_list = bit_fields(val)
             else:
                 row.raw_val = raw_data[row._offset:]
                 row._parsed_val = row.parser(row)
