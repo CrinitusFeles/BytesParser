@@ -1,3 +1,4 @@
+from copy import deepcopy
 from dataclasses import field, dataclass
 from typing import Any, Callable, Iterable, Literal
 from loguru import logger
@@ -8,16 +9,24 @@ def calc_bit(data: bytes, pos: int) -> int:
     return ((int.from_bytes(data) & (0x01 << pos)) >> pos)
 
 
-def bit_fields(row: "Row") -> list[str]:
-    repr_list: list[str] = []
-    for pos, label in row.bit_fields.items():
-        bit: int = calc_bit(data=row.raw_val, pos=pos)
-        if bit == 0 and row.show_bits == '1':
-            continue
-        elif bit == 1 and row.show_bits == '0':
-            continue
-        else:
-            repr_list.append(f"{label}: {bit}")
+class Bit:
+    label: str
+    ok_condition: bool
+    def __init__(self, label: str, ok_condition: bool):
+        self.label = label
+        self.ok_condition = ok_condition
+        self._value: int = -1  # not for user!
+        self._repr: str = '' # not for user!
+
+
+def bit_fields(row: "Row") -> list[Bit]:
+    repr_list: list[Bit] = []
+    for pos, bit in row.bit_fields.items():
+        bit._value = calc_bit(data=row.raw_val, pos=pos)
+        if bit._value == int(bit.ok_condition):
+            bit.label = f'    $[{pos}]{bit.label}'
+            bit._repr = f'{int(bit._value)}'
+            repr_list.append(bit)
     return repr_list
 
 
@@ -27,18 +36,14 @@ def parse(row: "Row") -> Any:
     return result
 
 
-def represent(parsed_val: Any, row: "Row") -> str:
-    result: str = f"{row.prefix}{parsed_val:{row.str_format}}"
-
-    if len(row.bit_fields) > 0 and row.show_bits != 'none':
-        bit_list: list[str] = bit_fields(row)
-        result = '\n'.join([result, *bit_list])
+def represent(row: "Row") -> str:
+    result: str = f"{row.prefix}{row._parsed_val:{row.str_format}}"
     return result
 
 
-def validate(parsed_val: int | float, row: "Row") -> bool:
+def validate(row: "Row") -> bool:
     try:
-        return row.min_value <= parsed_val <= row.max_value
+        return row.min_value <= row._parsed_val <= row.max_value
     except Exception:
         return True
 
@@ -50,19 +55,20 @@ class Row:
     str_format: str = 'd'
     prefix: str = ''
     parser: Callable[["Row"], Any] = parse
-    validator: Callable[[Any, "Row"], bool] = validate
-    representer: Callable[[Any, "Row"], str] = represent
+    validator: Callable[["Row"], bool] = validate
+    representer: Callable[["Row"], str] = represent
     args: Iterable = ()
     kwargs: dict = field(default_factory=dict)
     min_value: float = float('-inf')
     max_value: float = float('inf')
     byte_order: Literal['big', 'little'] = 'big'
-    bit_fields: dict[int, str] = field(default_factory=dict)
-    show_bits: Literal['all', '1', '0', 'none'] = '1'
+    bit_fields: dict[int, Bit] = field(default_factory=dict)
+    show_bitfield: bool = True
     signed: bool = False
     errors: int = 0
     is_valid: bool = True
     raw_val: bytes = b''
+    _parsed_val: Any = 0
     _offset: int = 0
 
     def _set_byte_order(self, byte_order: Literal['big', 'little']) -> None:
@@ -76,27 +82,43 @@ class Row:
             self.prefix = '0b'
             self.str_format = f'0{self.size * 8}b'
 
-    def _set_bits_repr(self, mode: Literal['all', '1', '0', 'none']):
-        self.show_bits = mode
 
+class SubFrame:
+    def __init__(self, rows: list[Row], prefix: str = '',
+                 postfix: str = '') -> None:
+        self.prefix: str = prefix
+        self.postfix: str = postfix
+        self.rows: list[Row] = deepcopy(rows)
+        self._index: int = 0
+
+    def __getitem__(self, key):
+        return self.rows[key]
+
+    def __iter__(self):
+        return self
+
+    def __next__(self) -> Row:
+        if self._index < len(self.rows):
+            var: Row = self.rows[self._index]
+            var.label = f'{self.prefix}{var.label}{self.postfix}'
+            self._index += 1
+            return var
+        raise StopIteration
 
 class Frame:
     def __init__(self, frame_type: str, rows: list[Row],
                  byte_order: Literal['big', 'little'] = 'big',
-                 bits_repr_mode: Literal['all', '1', '0', 'none'] | None = None,
                  use_frame_type_as_header: bool = True) -> None:
         self.frame_type: str = frame_type
         self.rows: list[Row] = rows
         self.full_size: int = sum(row.size for row in rows)
         [row._set_byte_order(byte_order) for row in self.rows
          if not row.byte_order]
-        if bits_repr_mode:
-            [row._set_bits_repr(bits_repr_mode) for row in self.rows]
         [row._set_prefix() for row in self.rows]
         self.use_frame_type_as_header: bool = use_frame_type_as_header
         self.update_offsets()
 
-    def update_offsets(self):
+    def update_offsets(self) -> None:
         offset = 0
         for prev_row, row in zip(self.rows[:-1], self.rows[1:]):
             offset += prev_row.size
@@ -114,18 +136,26 @@ class Frame:
             logger.warning(f'Frame size ({self.full_size}) and raw_data '\
                            f'({len(raw_data)}) are different!')
         for row in self.rows:
+            bit_list: list[Bit] = []
             if row.size > 0:
                 row.raw_val = raw_data[row._offset: row._offset + row.size]
-                data: Any = row.parser(row)
-                row.is_valid = row.validator(data, row)
+                row._parsed_val = row.parser(row)
+                row.is_valid = row.validator(row)
                 if not row.is_valid:
                     row.errors += 1
-                repr_data: str = row.representer(data, row)
+                repr_data: str = row.representer(row)
+                if len(row.bit_fields) > 0 and row.show_bitfield:
+                    bit_list = bit_fields(deepcopy(row))
             else:
                 row.raw_val = raw_data[row._offset:]
-                data = row.parser(row)
-                repr_data = row.representer(data, row)
+                row._parsed_val = row.parser(row)
+                repr_data = row.representer(row)
             table_rows.append((row.label, repr_data, row.is_valid, row.errors))
+            if len(bit_list):
+                table_rows.extend([(bit.label, bit._repr, row.is_valid,
+                                    row.errors)
+                                  for bit in bit_list])
+
         return table_rows
 
     def clear_errors(self) -> None:

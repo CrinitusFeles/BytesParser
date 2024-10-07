@@ -4,6 +4,7 @@ from typing import Callable
 
 from pandas import DataFrame
 from bytes_parser import Frame, Row
+from bytes_parser.frame_struct import Bit
 
 
 def get_field():
@@ -28,7 +29,7 @@ my_frame: Frame = Frame('my_frame_1', [
     Row('FIELD_5', 4, parser=my_parser, kwargs={'callback': get_field}),
     Row('FIELD_6', 4),
     Row("BITFIELD", 2, 'X',
-        bit_fields={i: f"BIT{i}" for i in range(16)}, show_bits='all'),
+        bit_fields={i: Bit(f"BIT{i}", True) for i in range(16)}),
     Row('CRC8', 1, 'X'),
 ], 'little')
 
