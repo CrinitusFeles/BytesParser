@@ -155,6 +155,31 @@ class Frame:
 
         return table_rows
 
+    def parse_table(self, raw_rows: list[bytes],
+                    drop_columns: list[str] = []) -> DataFrame:
+        header: list[str] = [row.label for row in self.rows
+                             if row.label not in drop_columns]
+        table_rows: list[list[str]] = []
+        for raw_data in raw_rows:
+            if self.full_size != len(raw_data):
+                logger.warning(f'Frame size ({self.full_size}) and raw_data '\
+                            f'({len(raw_data)}) are different!')
+            table_row: list[str] = []
+            for row in self.rows:
+                if row.label in drop_columns:
+                    continue
+                if row.size > 0:
+                    row.raw_val = raw_data[row._offset: row._offset + row.size]
+                    row._parsed_val = row.parser(row)
+                    repr_data: str = row.representer(row)
+                else:
+                    row.raw_val = raw_data[row._offset:]
+                    row._parsed_val = row.parser(row)
+                    repr_data = row.representer(row)
+                table_row.append(repr_data)
+            table_rows.append(table_row)
+        return DataFrame(table_rows, columns=header)
+
     def clear_errors(self) -> None:
         for row in self.rows:
             row.errors = 0
