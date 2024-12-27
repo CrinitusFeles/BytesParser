@@ -34,6 +34,8 @@ def parse(row: "Row") -> Any:
 
 
 def represent(row: "Row") -> str:
+    if isinstance(row._parsed_val, float) and row.prefix == 'd':
+        row.prefix = 'f'
     result: str = f"{row.prefix}{row._parsed_val:{row.str_format}}"
     return result
 
@@ -135,11 +137,15 @@ class Frame:
             bit_list: list[Bit] = []
             if row.size > 0:
                 row.raw_val = raw_data[row._offset: row._offset + row.size]
-                row._parsed_val = row.parser(row)
-                row.is_valid = row.validator(row)
-                if not row.is_valid:
-                    row.errors += 1
-                repr_data: str = row.representer(row)
+                try:
+                    row._parsed_val = row.parser(row)
+                    row.is_valid = row.validator(row)
+                    if not row.is_valid:
+                        row.errors += 1
+                    repr_data: str = row.representer(row)
+                except Exception as err:
+                    raise ValueError(f'Incorrect proccessing of {row.label} '\
+                                     f'label: {err}') from err
                 if len(row.bit_fields) > 0:
                     val = deepcopy(row)
                     bit_list = bit_fields(val)
