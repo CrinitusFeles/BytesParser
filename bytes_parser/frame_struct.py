@@ -34,8 +34,8 @@ def parse(row: "Row") -> Any:
 
 
 def represent(row: "Row") -> str:
-    if isinstance(row._parsed_val, float) and row.prefix == 'd':
-        row.prefix = 'f'
+    if isinstance(row._parsed_val, float) and row.str_format == 'd':
+        row.str_format = 'f'
     result: str = f"{row.prefix}{row._parsed_val:{row.str_format}}"
     return result
 
