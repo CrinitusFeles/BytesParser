@@ -68,6 +68,9 @@ class Row:
     raw_val: bytes = b''
     _parsed_val: Any = 0
     _offset: int = 0
+    parent_frame: 'Frame | None' = None
+    _bit_list: list[Bit] = field(default_factory=list)
+    _repr_data: str = ''
 
     def _set_byte_order(self, byte_order: Literal['big', 'little']) -> None:
         self.byte_order = byte_order
@@ -109,12 +112,21 @@ class Frame:
                  use_frame_type_as_header: bool = True) -> None:
         self.frame_type: str = frame_type
         self.rows: list[Row] = rows
-        self.full_size: int = sum(row.size for row in rows)
-        [row._set_byte_order(byte_order) for row in self.rows
-         if not row.byte_order]
-        [row._set_prefix() for row in self.rows]
+        self.rows_dict: dict[str, Row] = {row.label: row for row in self.rows}
+        self.full_size: int = sum(row.size for row in self.rows)
+        for row in self.rows:
+            if not row.byte_order:
+                row._set_byte_order(byte_order)
+            row._set_prefix()
+            row.parent_frame = self
         self.use_frame_type_as_header: bool = use_frame_type_as_header
         self.update_offsets()
+
+    def __getitem__(self, key: str | int) -> Any:
+        if isinstance(key, int):
+            return self.rows[key]._parsed_val
+        else:
+            return self.rows_dict[key]._parsed_val
 
     def update_offsets(self) -> None:
         offset = 0
@@ -133,33 +145,33 @@ class Frame:
         if self.full_size != len(raw_data):
             logger.warning(f'Frame size ({self.full_size}) and raw_data '\
                            f'({len(raw_data)}) are different!')
+        self._parse_fields(raw_data)
         for row in self.rows:
-            bit_list: list[Bit] = []
-            if row.size > 0:
-                row.raw_val = raw_data[row._offset: row._offset + row.size]
-                try:
-                    row._parsed_val = row.parser(row)
-                    row.is_valid = row.validator(row)
-                    if not row.is_valid:
-                        row.errors += 1
-                    repr_data: str = row.representer(row)
-                except Exception as err:
-                    raise ValueError(f'Incorrect proccessing of {row.label} '\
-                                     f'label: {err}') from err
-                if len(row.bit_fields) > 0:
-                    val = deepcopy(row)
-                    bit_list = bit_fields(val)
-            else:
-                row.raw_val = raw_data[row._offset:]
-                row._parsed_val = row.parser(row)
-                repr_data = row.representer(row)
-            table_rows.append((row.label, repr_data, row.is_valid, row.errors))
-            if len(bit_list):
+            row.is_valid = row.validator(row)
+            row._repr_data = row.representer(row)
+            if not row.is_valid:
+                row.errors += 1
+            table_rows.append((row.label, row._repr_data, row.is_valid,
+                               row.errors))
+            if len(row._bit_list):
                 table_rows.extend([(bit.label, bit._repr, row.is_valid,
-                                    row.errors)
-                                  for bit in bit_list])
-
+                                    row.errors) for bit in row._bit_list])
         return table_rows
+
+    def _parse_fields(self, raw_data: bytes):
+        for row in self.rows:
+            try:
+                if row.size > 0:
+                    row.raw_val = raw_data[row._offset: row._offset + row.size]
+                    if len(row.bit_fields) > 0:
+                        val = deepcopy(row)
+                        row._bit_list = bit_fields(val)
+                else:
+                    row.raw_val = raw_data[row._offset:]
+                row._parsed_val = row.parser(row)
+            except Exception as err:
+                raise ValueError(f'Incorrect proccessing of {row.label} '\
+                                 f'label: {err}') from err
 
     def parse_table(self, raw_rows: list[bytes],
                     drop_columns: list[str] = []) -> DataFrame:
