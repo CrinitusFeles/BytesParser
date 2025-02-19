@@ -132,7 +132,7 @@ class Row:
             self.prefix = '0b'
             self.str_format = f'0{self.size * 8}b'
 
-    def clear_errors(self):
+    def clear_errors(self) -> None:
         self.errors = 0
         for bit in self.bit_fields:
             bit.errors = 0
@@ -140,10 +140,15 @@ class Row:
 
 class SubFrame:
     def __init__(self, rows: list[Row], prefix: str = '',
+                 byte_order: Literal['big', 'little'] | None = None,
                  postfix: str = '') -> None:
         self.prefix: str = prefix
         self.postfix: str = postfix
         self.rows: list[Row] = deepcopy(rows)
+        if byte_order is not None:
+            for row in self.rows:
+                if not row.byte_order:
+                    row.byte_order = byte_order
         self._index: int = 0
 
     def __getitem__(self, key) -> Row:
