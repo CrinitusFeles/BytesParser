@@ -24,7 +24,8 @@ class BitFlag:
 
 class BitField:
     def __init__(self, pos: int, label: str, length: int = 1,
-                 max_value: int = 1, min_value: int = 0,
+                 max_value: float = float('inf'),
+                 min_value: float = float('-inf'),
                  show: Literal['always', 'error'] = 'error',
                  parser: Callable | None = None) -> None:
         self.label: str = label
@@ -34,8 +35,8 @@ class BitField:
         self.errors = 0
         if self.length < 1:
             raise ValueError('BitField length must be bigger then 0')
-        self.max_value: int = max_value
-        self.min_value: int = min_value
+        self.max_value: float = max_value
+        self.min_value: float = min_value
         self.parser: Callable | None = parser
         self.is_valid: bool = True
         self._repr_label: str = f'    $[{self.pos}:{self.pos + self.length}]'\
