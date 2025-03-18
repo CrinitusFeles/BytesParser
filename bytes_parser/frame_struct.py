@@ -169,7 +169,8 @@ class SubFrame:
 class Frame:
     def __init__(self, frame_type: str, rows: list[Row],
                  byte_order: Literal['big', 'little'] = 'big',
-                 use_frame_type_as_header: bool = True) -> None:
+                 use_frame_type_as_header: bool = True,
+                 show_bits: Literal['auto', 'always'] = 'auto') -> None:
         self.frame_type: str = frame_type
         self.rows: list[Row] = rows
         self.rows_dict: dict[str, Row] = {row.label: row for row in self.rows}
@@ -182,6 +183,8 @@ class Frame:
             bits: list[int] = []
             for bit in row.bit_fields:
                 bits.extend(bit.get_pos_range())
+                if show_bits == 'always':
+                    bit.show = 'always'
             if len(bits) != len(set(bits)):
                 raise ValueError(f'Invalid BitField positions for {row.label}')
             if bits and  max(bits) > row.size * 8 - 1:
