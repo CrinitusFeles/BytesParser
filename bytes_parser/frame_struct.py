@@ -1,6 +1,6 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterable, Literal
+from typing import Any, Callable, Iterable, Literal, Sequence
 from loguru import logger
 from pandas import DataFrame
 
@@ -206,7 +206,9 @@ class Frame:
             offset += prev_row.size
             row._offset = offset
 
-    def parse(self, raw_data: bytes) -> DataFrame:
+    def parse(self, raw_data: bytes | str) -> DataFrame:
+        if isinstance(raw_data, str):
+            raw_data = bytes.fromhex(raw_data)
         table_rows: list[tuple] = self.parse_tuple(raw_data)
         header: str = ('Name', self.frame_type)[self.use_frame_type_as_header]
         return DataFrame(table_rows, columns=[header, 'Value', 'IsOK',
@@ -244,14 +246,16 @@ class Frame:
                                     bit.errors) for bit in row._repr_bit_list])
         return table_rows
 
-    def parse_table(self, raw_rows: list[bytes],
-                    drop_columns: list[str] = []) -> tuple[DataFrame,
+    def parse_table(self, raw_rows: Sequence[bytes] | Sequence[str],
+                    drop_columns: Iterable[str] = []) -> tuple[DataFrame,
                                                            DataFrame]:
         header: list[str] = [row.label for row in self.rows
                              if row.label not in drop_columns]
         table_rows: list[list[str]] = []
         valid_mask: list[list[bool]] = []
-        for raw_data in raw_rows:
+        bytes_rows: list[bytes] = [bytes.fromhex(line) if isinstance(line, str) else line
+                                   for line in raw_rows]
+        for raw_data in bytes_rows:
             if self.full_size != len(raw_data):
                 logger.warning(f'Frame size ({self.full_size}) and raw_data '\
                             f'({len(raw_data)}) are different!')
