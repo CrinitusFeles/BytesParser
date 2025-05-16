@@ -48,7 +48,7 @@ class BitField:
         return list(range(self.pos, self.pos + self.length))
 
 
-def bit_fields(row: "Row") -> list[BitField | BitFlag]:
+def bit_fields(row: "Row", all_bits: bool = False) -> list[BitField | BitFlag]:
     repr_list: list[BitField | BitFlag] = []
     for bit in row.bit_fields:
         val: int = int.from_bytes(row.raw_val, byteorder=row.byte_order)
@@ -57,7 +57,7 @@ def bit_fields(row: "Row") -> list[BitField | BitFlag]:
             bit.is_valid = bit.ok_condition == bit._value
             if not bit.is_valid:
                 bit.errors += 1
-            if bit.is_valid and bit.show != 'always':
+            if bit.is_valid and bit.show != 'always' and not all_bits:
                 continue
             bit._repr = f'{bit._value}'
             repr_list.append(bit)
@@ -247,13 +247,19 @@ class Frame:
         return table_rows
 
     def parse_table(self, raw_rows: Sequence[bytes] | Sequence[str],
-                    drop_columns: Iterable[str] = []) -> tuple[DataFrame,
-                                                           DataFrame]:
-        header: list[str] = [row.label for row in self.rows
-                             if row.label not in drop_columns]
+                    drop_columns: Iterable[str] = [],
+                    parse_bits: bool = False) -> tuple[DataFrame, DataFrame]:
+        header: list[str] = []
+        for row in self.rows:
+            if row.label not in drop_columns:
+                header.append(row.label)
+                if len(row.bit_fields) and parse_bits:
+                    for bit in row.bit_fields:
+                        header.append(f'    {row.label}: {bit.label}')
         table_rows: list[list[str]] = []
         valid_mask: list[list[bool]] = []
-        bytes_rows: list[bytes] = [bytes.fromhex(line) if isinstance(line, str) else line
+        bytes_rows: list[bytes] = [bytes.fromhex(line)
+                                   if isinstance(line, str) else line
                                    for line in raw_rows]
         for raw_data in bytes_rows:
             if self.full_size != len(raw_data):
@@ -272,6 +278,11 @@ class Frame:
                 repr_data: str = row.representer(row)
                 row_valid_list.append(row.validator(row))
                 table_row.append(repr_data)
+                if len(row.bit_fields) and parse_bits:
+                    row._repr_bit_list = bit_fields(row, all_bits=True)
+                    table_row.extend([bit._repr for bit in row._repr_bit_list])
+                    row_valid_list.extend([bit.is_valid
+                                           for bit in row._repr_bit_list])
             table_rows.append(table_row)
             valid_mask.append(row_valid_list)
         return (DataFrame(table_rows, columns=header),
