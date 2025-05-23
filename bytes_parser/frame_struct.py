@@ -101,7 +101,7 @@ class Row:
     label: str
     size: int
     str_format: str = 'd'
-    prefix: str = ''
+    prefix: str | None = ''
     parser: Callable[["Row"], Any] = parse
     validator: Callable[["Row"], bool] = validate
     representer: Callable[["Row"], str] = represent
@@ -126,10 +126,10 @@ class Row:
 
     def _set_prefix(self) -> None:
         if 'X' in self.str_format:
-            self.prefix = '0x'
+            self.prefix = '0x' if self.prefix is not None else ''
             self.str_format = f'0{self.size * 2}X'
         elif 'b' in self.str_format:
-            self.prefix = '0b'
+            self.prefix = '0b' if self.prefix is not None else ''
             self.str_format = f'0{self.size * 8}b'
 
     def clear_errors(self) -> None:
