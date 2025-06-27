@@ -127,11 +127,16 @@ class Row:
     def _set_prefix(self) -> None:
         if 'X' in self.str_format:
             self.prefix = '0x' if self.prefix is not None else ''
-            self.str_format = f'0{self.size * 2}X'
+            if self.size > 0:
+                self.str_format = f'0{self.size * 2}X'
+            else:
+                self.str_format = 'X'
         elif 'b' in self.str_format:
             self.prefix = '0b' if self.prefix is not None else ''
-            self.str_format = f'0{self.size * 8}b'
-
+            if self.size > 0:
+                self.str_format = f'0{self.size * 8}b'
+            else:
+                self.str_format = 'b'
     def clear_errors(self) -> None:
         self.errors = 0
         for bit in self.bit_fields:
