@@ -35,14 +35,23 @@ my_frame: Frame = Frame('my_frame_1', [
 
 
 my_frame2: Frame = Frame('my_frame_2', [
-    Row('FIELD_1', 1, 'X'),
-    Row('FIELD_2', 2, 'b'),
-    Row('FIELD_3', 2, 'b'),
-    Row('FIELD_4', 2),
-    Row('FIELD_5', 4, '.2f'),
+    Row('FIELD_11', 1, 'X'),
+    Row('FIELD_21', 2, 'b'),
+    Row('FIELD_31', 2, 'b'),
+    Row('FIELD_41', 2),
+    Row('FIELD_51', 4, '.2f'),
     Row('CRC8', 1, 'X'),
 ], 'little')
 
+combined_frame = Frame('combined_frame', [
+    Row('FIELD_1', 1, 'X', min_value=0, max_value=90),
+    Row('FIELD_51', 4, '.2f'),
+    Row('FIELD_6', 4),
+    Row('FIELD_31', 2, 'b'),
+    Row("BITFIELD", 2, 'X',
+        bit_fields=[*[BitFlag(i, f"BIT{i}", True) for i in range(10)],
+                    BitField(10, "Counter", length=6, max_value=50)]),
+], 'little')
 
 unknown_frame: Frame = Frame('UndefinedFrame', [
     Row('UndefinedData', 0, 'X')
@@ -69,3 +78,4 @@ print(parse(raw_data2))
 print(parse(raw_data3))
 print(parse(b'gsdssf'))
 print(my_frame)
+print(combined_frame.from_frames(my_frame2, my_frame))

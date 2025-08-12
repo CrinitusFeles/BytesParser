@@ -303,3 +303,21 @@ class Frame:
             table_rows.append((row.label, row.size, row._offset))
         df = DataFrame(table_rows, columns=['Label', 'Size', 'Offset'])
         return df.to_string() + f'\nFull size: {self.full_size}'
+
+    def from_frames(self, *frames: "Frame"):
+        raw_data: bytes = b''
+        for row in self.rows:
+            frame_row: Row | None = None
+            for frame in frames:
+                frame_row = frame.rows_dict.get(row.label, None)
+                if frame_row:
+                    break
+            if not frame_row:
+                labels: list[str] = [frame.frame_type for frame in frames]
+                logger.error(f'Row {row.label} not found in {labels}')
+                return None
+            raw_data += frame_row.raw_val
+        if len(raw_data) != self.full_size:
+            logger.error('Failed to assemble frame')
+            return
+        return self.parse(raw_data)
