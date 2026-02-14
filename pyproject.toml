@@ -1,19 +1,19 @@
-[tool.poetry]
+[project]
 name = "bytes_parser"
 version = "2.2.0"
 description = ""
-authors = ["CrinitusFeles <crinitusfeles@gmail.com>"]
+requires-python = ">=3.11"
 license = "MIT"
 readme = "README.md"
 
-[tool.poetry.dependencies]
-python = "^3.10"
-pandas = "^2.2.0"
-loguru = "^0.7.2"
+dependencies=[
+    "pandas",
+    "loguru"
+]
+
+[tool.uv]
+config-settings = { editable_mode = "compat" }
 
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry_bumpversion.file."bytes_parser/__init__.py"]
+[tool.ruff.lint]
+preview = true
