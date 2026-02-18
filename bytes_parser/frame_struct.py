@@ -199,6 +199,11 @@ class Frame:
         self.use_frame_type_as_header: bool = use_frame_type_as_header
         self.update_offsets()
 
+    def check_labels(self):
+        labels: list[str] = [row.label for row in self.rows]
+        dups: list[str] = list(set(filter(lambda x: labels.count(x) > 1, labels)))
+        logger.warning(f'Frame {self.frame_type} has duplicated rows: {dups}')
+
     def __getitem__(self, key: str | int) -> Any:
         if isinstance(key, int):
             return self.rows[key]._parsed_val
@@ -236,8 +241,8 @@ class Frame:
     def parse_tuple(self, raw_data: bytes) -> list[tuple[str, str, bool, int]]:
         table_rows: list[tuple[str, str, bool, int]] = []
         if self.full_size != len(raw_data):
-            logger.warning(f'Frame size ({self.full_size}) and raw_data '\
-                           f'({len(raw_data)}) are different!')
+            logger.warning(f'Frame {self.frame_type} size ({self.full_size}) '\
+                           f'and raw_data ({len(raw_data)}) are different!')
         self._parse_fields(raw_data)
         for row in self.rows:
             row.is_valid = row.validator(row)
