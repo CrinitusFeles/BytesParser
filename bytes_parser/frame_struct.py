@@ -198,11 +198,13 @@ class Frame:
 
         self.use_frame_type_as_header: bool = use_frame_type_as_header
         self.update_offsets()
+        self.check_labels()
 
     def check_labels(self):
         labels: list[str] = [row.label for row in self.rows]
         dups: list[str] = list(set(filter(lambda x: labels.count(x) > 1, labels)))
-        logger.warning(f'Frame {self.frame_type} has duplicated rows: {dups}')
+        if dups:
+            logger.warning(f'Frame {self.frame_type} has duplicated rows: {dups}')
 
     def __getitem__(self, key: str | int) -> Any:
         if isinstance(key, int):
