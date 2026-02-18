@@ -198,7 +198,6 @@ class Frame:
 
         self.use_frame_type_as_header: bool = use_frame_type_as_header
         self.update_offsets()
-        self.check_labels()
 
     def check_labels(self):
         labels: list[str] = [row.label for row in self.rows]
