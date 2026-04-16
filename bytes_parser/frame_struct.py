@@ -234,7 +234,12 @@ class Frame:
                         row._repr_bit_list = bit_fields(row)
                 else:
                     row.raw_val = raw_data[row._offset:]
-                row._parsed_val = row.parser(row)
+                if row.kwargs:
+                    row._parsed_val = row.parser(row, **row.kwargs)
+                elif row.args:
+                    row._parsed_val = row.parser(row, *row.args)
+                else:    
+                    row._parsed_val = row.parser(row)
             except Exception as err:
                 raise ValueError(f'Incorrect proccessing of {row.label} '\
                                  f'label: {err}') from err
@@ -285,7 +290,12 @@ class Frame:
                     row.raw_val = raw_data[row._offset: row._offset + row.size]
                 else:
                     row.raw_val = raw_data[row._offset:]
-                row._parsed_val = row.parser(row)
+                if row.kwargs:
+                    row._parsed_val = row.parser(row, **row.kwargs)
+                elif row.args:
+                    row._parsed_val = row.parser(row, *row.args)
+                else:    
+                    row._parsed_val = row.parser(row)
                 repr_data: str = row.representer(row)
                 row_valid_list.append(row.validator(row))
                 table_row.append(repr_data)
