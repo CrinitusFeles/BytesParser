@@ -27,7 +27,7 @@ class Row:
     prefix: str | None = ''
     _errors: int = 0
     _is_valid: bool = True
-    _raw_val: bytes = b''
+    raw_val: bytes = b''
     _parsed_val: int | float = 0
     _offset: int = 0
     _parent_frame: 'Frame | None' = None
@@ -58,11 +58,11 @@ class Row:
 
     def _parse(self, raw_data: bytes, all_bits: bool = False):
         if self.size > 0:
-            self._raw_val = raw_data[self._offset: self._offset + self.size]
+            self.raw_val = raw_data[self._offset: self._offset + self.size]
             if len(self.bit_fields) > 0:
                 self._repr_bit_list = bit_fields(self, all_bits)
         else:
-            self._raw_val = raw_data[self._offset:]
+            self.raw_val = raw_data[self._offset:]
         if self.kwargs and self.args:
             self._parsed_val = self.parser(self, *self.args, **self.kwargs)
         elif self.args:
@@ -76,5 +76,5 @@ class Row:
         if not self._is_valid:
             self._errors += 1
         return (self.label, self._repr_data, self._parsed_val,
-                f'0x{self._raw_val.hex().upper()}',
+                f'0x{self.raw_val.hex().upper()}',
                 self._is_valid, self._errors)

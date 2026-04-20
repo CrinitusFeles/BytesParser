@@ -135,7 +135,7 @@ class Frame:
                 labels: list[str] = [frame.frame_type for frame in frames]
                 logger.error(f'Row {row.label} not found in {labels}')
                 return None
-            raw_data += frame_row._raw_val
+            raw_data += frame_row.raw_val
         if len(raw_data) != self.full_size:
             logger.error('Failed to assemble frame')
             return None

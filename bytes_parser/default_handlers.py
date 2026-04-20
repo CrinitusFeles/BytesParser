@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 def bit_fields(row: "Row", all_bits: bool = False) -> Sequence[BitField | BitFlag]:
     repr_list: list[BitField | BitFlag] = []
     for bit in row.bit_fields:
-        val: int = int.from_bytes(row._raw_val, byteorder=row.byte_order)
+        val: int = int.from_bytes(row.raw_val, byteorder=row.byte_order)
         if isinstance(bit, BitFlag):
             bit._value = ((val & (0x01 << bit.pos)) >> bit.pos)
             bit._raw = bit._value.to_bytes()
@@ -41,7 +41,7 @@ def bit_fields(row: "Row", all_bits: bool = False) -> Sequence[BitField | BitFla
 
 
 def parse(row: "Row") -> Any:
-    result: int = int.from_bytes(row._raw_val, row.byte_order,
+    result: int = int.from_bytes(row.raw_val, row.byte_order,
                                  signed=row.signed)
     return result
 
