@@ -1,3 +1,5 @@
-from .frame_struct import Frame, SubFrame, Row, BitField, BitFlag  # noqa: F401
+from .bitfields import BitField, BitFlag  # noqa: F401
+from .frame import Frame  # noqa: F401
+from .row import Row  # noqa: F401
 
-__version__ = '2.2.0'
+__version__ = '3.0.0'

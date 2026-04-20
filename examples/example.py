@@ -1,18 +1,19 @@
 
 import random
-from typing import Callable
+from collections.abc import Callable
 
 from pandas import DataFrame
-from bytes_parser import Frame, Row, BitField, BitFlag
+
+from bytes_parser import BitField, BitFlag, Frame, Row
 
 
 def get_field():
     return -30
 
 
-def my_parser(row: Row) -> int:
+def my_parser(row: Row, *args, **kwargs) -> int:
     if row.kwargs:
-        callback: Callable | None = row.kwargs.get('callback', None)
+        callback: Callable | None = kwargs.get('callback', None)
         if callback:
             field = callback()
             if field < 0:
@@ -71,6 +72,9 @@ def parse(data: bytes) -> DataFrame:
     else:
         return unknown_frame.parse(data)
 
+def parse_table(data: list[bytes]):
+    return my_frame.parse_table(data)
+
 print('raw_data=', raw_data.hex(' ').upper())
 print('raw_data2=', raw_data2.hex(' ').upper())
 print(parse(raw_data))
@@ -79,3 +83,4 @@ print(parse(raw_data3))
 print(parse(b'gsdssf'))
 print(my_frame)
 print(combined_frame.from_frames(my_frame2, my_frame))
+print(parse_table([raw_data] * 8))
