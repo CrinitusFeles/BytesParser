@@ -5,10 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-04-20
+
+### Added
+- Added representation and hex columns by @CrinitusFeles
+- Added the case if kwargs and args are available by @AtariVC
+- Support args and kwargs for parser by @AtariVC
+- Added check_labels method by @CrinitusFeles
+
+### Changed
+- Merge pull request #1 from AtariVC/main by @CrinitusFeles in [#1](https://github.com/CrinitusFeles/BytesParser/pull/1)
+- Migrated from poetry tto uv by @CrinitusFeles
+
+### Fixed
+- Fixed check_labels method by @CrinitusFeles
+
+### Removed
+- Removed check_labels from frame init by @CrinitusFeles
+
+## New Contributors
+* @AtariVC made their first contribution
 ## [2.2.0] - 2025-08-12
 
 ### Added
 - Added from_frames method by @CrinitusFeles
+
+### Changed
+- Bump  version by @CrinitusFeles
 
 ## [2.1.1] - 2025-06-27
 
@@ -91,7 +114,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Removed pyarrow deps by @CrinitusFeles
 
-[2.2.0]: https://github.com/CrinitusFeles/BytesParser/compare/v2.1.1..2.2.0
+[3.0.0]: https://github.com/CrinitusFeles/BytesParser/compare/v2.2.0..3.0.0
+[2.2.0]: https://github.com/CrinitusFeles/BytesParser/compare/v2.1.1..v2.2.0
 [2.1.1]: https://github.com/CrinitusFeles/BytesParser/compare/v2.1.0..v2.1.1
 [2.1.0]: https://github.com/CrinitusFeles/BytesParser/compare/v2.0.0..v2.1.0
 [2.0.0]: https://github.com/CrinitusFeles/BytesParser/compare/v1.1.0..v2.0.0
