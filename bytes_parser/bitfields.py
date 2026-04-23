@@ -26,6 +26,7 @@ class BitFlag:
 
 class BitField:
     def __init__(self, pos: int, label: str, length: int = 1,
+                 str_format: str = 'd',
                  max_value: float = float('inf'),
                  min_value: float = float('-inf'),
                  show: Literal['always', 'error'] = 'error',
@@ -35,6 +36,7 @@ class BitField:
         self.label: str = label
         self.pos: int = pos
         self.length: int = length
+        self.str_format: str = str_format
         self.show: Literal['always', 'error'] = show
         self.errors = 0
         if self.length < 1:
