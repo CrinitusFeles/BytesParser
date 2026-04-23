@@ -1,5 +1,6 @@
+import struct
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bytes_parser import BitFlag
 from bytes_parser.bitfields import BitField
@@ -8,7 +9,8 @@ if TYPE_CHECKING:
     from bytes_parser.row import Row
 
 
-def bit_fields(row: "Row", all_bits: bool = False) -> Sequence[BitField | BitFlag]:
+def bit_fields(row: "Row",
+               all_bits: bool = False) -> Sequence[BitField | BitFlag]:
     repr_list: list[BitField | BitFlag] = []
     for bit in row.bit_fields:
         val: int = int.from_bytes(row.raw_val, byteorder=row.byte_order)
@@ -30,8 +32,8 @@ def bit_fields(row: "Row", all_bits: bool = False) -> Sequence[BitField | BitFla
             bit.is_valid = bit.min_value < bit._value < bit.max_value
             if not bit.is_valid:
                 bit.errors += 1
-            if bit.parser:
-                bit._repr = f'{bit.parser(bit._value)}'
+            if bit.representer:
+                bit._repr = f'{bit.representer(bit._value)}'
             else:
                 bit._repr = f'{bit._value}'
             repr_list.append(bit)
@@ -40,9 +42,14 @@ def bit_fields(row: "Row", all_bits: bool = False) -> Sequence[BitField | BitFla
     return repr_list
 
 
-def parse(row: "Row") -> Any:
-    result: int = int.from_bytes(row.raw_val, row.byte_order,
-                                 signed=row.signed)
+def parse(row: "Row") -> int | float:
+    result: int | float = 0
+    if 'f' in row.str_format and row.size == 4:
+        bytes_order: str = [">", "<"][row.byte_order == "big"]
+        result = struct.unpack(f'{bytes_order}f', row.raw_val)[0]
+    else:
+        result = int.from_bytes(row.raw_val, row.byte_order,
+                                signed=row.signed)
     return result
 
 
