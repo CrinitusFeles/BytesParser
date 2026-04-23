@@ -29,11 +29,16 @@ def bit_fields(row: "Row",
             mask = [mask := mask | (1 << i) for i in range(bit.length)][-1]
             bit._value = (val >> bit.pos) & mask
             bit._raw = bit._value.to_bytes(bit.length // 8 + 1, row.byte_order)
-            bit.is_valid = bit.min_value < bit._value < bit.max_value
+            if bit.parser:
+                bit._value = bit.parser(bit)
+            if bit.validator:
+                bit.is_valid = bit.validator(bit)
+            else:
+                bit.is_valid = bit.min_value < bit._value < bit.max_value
             if not bit.is_valid:
                 bit.errors += 1
             if bit.representer:
-                bit._repr = f'{bit.representer(bit._value)}'
+                bit._repr = bit.representer(bit)
             else:
                 bit._repr = f'{bit._value}'
             repr_list.append(bit)

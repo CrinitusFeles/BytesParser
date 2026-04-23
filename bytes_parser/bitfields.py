@@ -1,5 +1,3 @@
-
-
 from collections.abc import Callable
 from typing import Literal
 
@@ -26,13 +24,14 @@ class BitFlag:
                 f'0x{self._raw.hex().upper()}',
                 self.is_valid, self.errors)
 
-
 class BitField:
     def __init__(self, pos: int, label: str, length: int = 1,
                  max_value: float = float('inf'),
                  min_value: float = float('-inf'),
                  show: Literal['always', 'error'] = 'error',
-                 representer: Callable[[int | float], str] | None = None) -> None:
+                 parser: Callable[["BitField"], int | float] | None = None,
+                 validator: Callable[["BitField"], bool] | None = None,
+                 representer: Callable[["BitField"], str] | None = None) -> None:
         self.label: str = label
         self.pos: int = pos
         self.length: int = length
@@ -42,18 +41,20 @@ class BitField:
             raise ValueError('BitField length must be bigger then 0')
         self.max_value: float = max_value
         self.min_value: float = min_value
-        self.representer: Callable[[int | float], str] | None = representer
+        self.parser: Callable[[BitField], int | float] | None = parser
+        self.representer: Callable[[BitField], str] | None = representer
+        self.validator: Callable[[BitField], bool] | None = validator
         self.is_valid: bool = True
         self._repr_label: str = f'    $[{self.pos}:{self.pos + self.length}]'\
                                 f'{self.label}'
-        self._value: int = -1  # not for user!
+        self._value: int | float = 0
         self._raw: bytes = b''
-        self._repr: str = '' # not for user!
+        self._repr: str = ''
 
     def get_pos_range(self) -> list[int]:
         return list(range(self.pos, self.pos + self.length))
 
-    def get_tuple(self) -> tuple[str, str, int, str, bool, int]:
+    def get_tuple(self) -> tuple[str, str, int | float, str, bool, int]:
         return (self._repr_label, self._repr, self._value,
                 f'0x{self._raw.hex().upper()}',
                 self.is_valid, self.errors)
