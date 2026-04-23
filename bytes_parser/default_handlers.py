@@ -40,7 +40,7 @@ def bit_fields(row: "Row",
             if bit.representer:
                 bit._repr = bit.representer(bit)
             else:
-                bit._repr = f'{bit._value:bit.str_format}'
+                bit._repr = f'{bit._value:{bit.str_format}}'
             repr_list.append(bit)
         else:
             raise TypeError(f'Incorrect bitfield type: {type(bit)}')
