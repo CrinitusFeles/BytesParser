@@ -21,7 +21,7 @@ class BitFlag:
     def get_pos_range(self) -> list[int]:
         return [self.pos]
 
-    def get_tuple(self):
+    def get_tuple(self) -> tuple[str, str, int, str, bool, int]:
         return (self._repr_label, self._repr, self._value,
                 f'0x{self._raw.hex().upper()}',
                 self.is_valid, self.errors)
@@ -32,7 +32,7 @@ class BitField:
                  max_value: float = float('inf'),
                  min_value: float = float('-inf'),
                  show: Literal['always', 'error'] = 'error',
-                 parser: Callable | None = None) -> None:
+                 representer: Callable[[int | float], str] | None = None) -> None:
         self.label: str = label
         self.pos: int = pos
         self.length: int = length
@@ -42,7 +42,7 @@ class BitField:
             raise ValueError('BitField length must be bigger then 0')
         self.max_value: float = max_value
         self.min_value: float = min_value
-        self.parser: Callable | None = parser
+        self.representer: Callable[[int | float], str] | None = representer
         self.is_valid: bool = True
         self._repr_label: str = f'    $[{self.pos}:{self.pos + self.length}]'\
                                 f'{self.label}'
@@ -53,7 +53,7 @@ class BitField:
     def get_pos_range(self) -> list[int]:
         return list(range(self.pos, self.pos + self.length))
 
-    def get_tuple(self):
+    def get_tuple(self) -> tuple[str, str, int, str, bool, int]:
         return (self._repr_label, self._repr, self._value,
                 f'0x{self._raw.hex().upper()}',
                 self.is_valid, self.errors)
