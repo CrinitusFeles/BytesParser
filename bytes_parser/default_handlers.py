@@ -1,3 +1,4 @@
+import math
 import struct
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
@@ -28,7 +29,8 @@ def bit_fields(row: "Row",
             mask: int = 0
             mask = [mask := mask | (1 << i) for i in range(bit.length)][-1]
             bit._value = (val >> bit.pos) & mask
-            bit._raw = bit._value.to_bytes(bit.length // 8 + 1, row.byte_order)
+            bit._raw = bit._value.to_bytes(math.ceil(bit.length / 8),
+                                           row.byte_order)
             if bit.parser:
                 bit._value = bit.parser(bit)
             if bit.validator:
