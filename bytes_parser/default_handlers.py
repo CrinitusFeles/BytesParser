@@ -40,6 +40,8 @@ def bit_fields(row: "Row",
             if bit.representer:
                 bit._repr = bit.representer(bit)
             else:
+                if bit.str_format == 'd' and isinstance(bit._value, float):
+                    bit.str_format = 'f'
                 bit._repr = f'{bit._value:{bit.str_format}}'
             repr_list.append(bit)
         else:
