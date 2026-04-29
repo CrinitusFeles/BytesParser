@@ -51,7 +51,7 @@ def bit_fields(row: "Row",
     return repr_list
 
 
-def parse(row: "Row") -> int | float:
+def parse(row: "Row", *args, **kwargs) -> int | float:
     result: int | float = 0
     if 'f' in row.str_format and row.size == 4:
         bytes_order: str = [">", "<"][row.byte_order == "big"]
@@ -62,14 +62,14 @@ def parse(row: "Row") -> int | float:
     return result
 
 
-def represent(row: "Row") -> str:
+def represent(row: "Row", *args, **kwargs) -> str:
     if isinstance(row._parsed_val, float) and row.str_format == 'd':
         row.str_format = '.2f'
     result: str = f"{row.prefix}{row._parsed_val:{row.str_format}}"
     return result
 
 
-def validate(row: "Row") -> bool:
+def validate(row: "Row", *args, **kwargs) -> bool:
     try:
         return row.min_value <= row._parsed_val <= row.max_value
     except Exception:  # noqa: BLE001

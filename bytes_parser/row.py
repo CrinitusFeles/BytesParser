@@ -65,14 +65,20 @@ class Row:
             self.raw_val = raw_data[self._offset:]
         if self.kwargs and self.args:
             self._parsed_val = self.parser(self, *self.args, **self.kwargs)
+            self._is_valid = self.validator(self, *self.args, **self.kwargs)
+            self._repr_data = self.representer(self, *self.args, **self.kwargs)
         elif self.args:
             self._parsed_val = self.parser(self, *self.args)
+            self._is_valid = self.validator(self, *self.args)
+            self._repr_data = self.representer(self, *self.args)
         elif self.kwargs:
             self._parsed_val = self.parser(self, **self.kwargs)
+            self._is_valid = self.validator(self, **self.kwargs)
+            self._repr_data = self.representer(self, **self.kwargs)
         else:
             self._parsed_val = self.parser(self)
-        self._is_valid = self.validator(self)
-        self._repr_data = self.representer(self)
+            self._is_valid = self.validator(self)
+            self._repr_data = self.representer(self)
         if not self._is_valid:
             self._errors += 1
         return (self.label, self._repr_data, self._parsed_val,
