@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-04-29
+
+### Added
+- Added CompositeFrame by @CrinitusFeles
+- Added str_format for bitfield by @CrinitusFeles
+- Added parser and validator for bitfields by @CrinitusFeles
+
+### Changed
+- Renamed bitfield' parser attribute to representer by @CrinitusFeles
+- Renamed raw_val attribute by @CrinitusFeles
+
+### Fixed
+- Fixed Row parser by @CrinitusFeles
+- Fixed bit_field parser by @CrinitusFeles
+- Fixed bit_fields representer by @CrinitusFeles
+- Fixed bitfield str_format by @CrinitusFeles
+- Fixed default field parser by @CrinitusFeles
+- Fixed __init__.py by @CrinitusFeles
+
 ## [3.0.0] - 2026-04-20
 
 ### Added
@@ -14,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added check_labels method by @CrinitusFeles
 
 ### Changed
+- Edited changelog by @CrinitusFeles
 - Merge pull request #1 from AtariVC/main by @CrinitusFeles in [#1](https://github.com/CrinitusFeles/BytesParser/pull/1)
 - Migrated from poetry tto uv by @CrinitusFeles
 
@@ -114,7 +134,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Removed pyarrow deps by @CrinitusFeles
 
-[3.0.0]: https://github.com/CrinitusFeles/BytesParser/compare/v2.2.0..3.0.0
+[3.1.0]: https://github.com/CrinitusFeles/BytesParser/compare/v3.0.0..3.1.0
+[3.0.0]: https://github.com/CrinitusFeles/BytesParser/compare/v2.2.0..v3.0.0
 [2.2.0]: https://github.com/CrinitusFeles/BytesParser/compare/v2.1.1..v2.2.0
 [2.1.1]: https://github.com/CrinitusFeles/BytesParser/compare/v2.1.0..v2.1.1
 [2.1.0]: https://github.com/CrinitusFeles/BytesParser/compare/v2.0.0..v2.1.0
