@@ -54,7 +54,7 @@ def bit_fields(row: "Row",
 def parse(row: "Row", *args, **kwargs) -> int | float:
     result: int | float = 0
     if 'f' in row.str_format and row.size == 4:
-        bytes_order: str = [">", "<"][row.byte_order == "big"]
+        bytes_order: str = ["<", ">"][row.byte_order == "big"]
         result = struct.unpack(f'{bytes_order}f', row.raw_val)[0]
     else:
         result = int.from_bytes(row.raw_val, row.byte_order,
