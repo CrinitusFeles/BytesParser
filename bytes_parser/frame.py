@@ -37,6 +37,11 @@ class Frame:
         self.update_offsets()
         self.check_labels()
 
+    def inject_kwargs(self, kwargs: dict):
+        for row in self.rows:
+            row.kwargs.update(kwargs)
+        return self
+
     def check_labels(self):
         labels: list[str] = [row.label for row in self.rows]
         dups: list[str] = list(set(filter(lambda x: labels.count(x) > 1, labels)))
