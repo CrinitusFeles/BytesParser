@@ -1,6 +1,6 @@
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal, Protocol
 
 from bytes_parser.bitfields import BitField, BitFlag
 from bytes_parser.default_handlers import bit_fields, parse, represent, validate
@@ -9,14 +9,27 @@ if TYPE_CHECKING:
     from bytes_parser import Frame
 
 
+class Parser(Protocol):
+    def __call__(self, field: "Row", *args: Any, **kwds: Any) -> int | float:
+        ...
+
+class Representer(Protocol):
+    def __call__(self, field: "Row", *args: Any, **kwds: Any) -> str:
+        ...
+
+class Validator(Protocol):
+    def __call__(self, field: "Row", *args: Any, **kwds: Any) -> bool:
+        ...
+
+
 @dataclass
 class Row:
     label: str
     size: int
     str_format: str = 'd'
-    parser: Callable[["Row"], int | float] = parse
-    validator: Callable[["Row"], bool] = validate
-    representer: Callable[["Row"], str] = represent
+    parser: Parser = parse
+    validator: Validator = validate
+    representer: Representer = represent
     args: Iterable = field(default_factory=tuple)
     kwargs: dict = field(default_factory=dict)
     min_value: float = float('-inf')

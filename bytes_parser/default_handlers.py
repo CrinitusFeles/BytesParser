@@ -51,26 +51,26 @@ def bit_fields(row: "Row",
     return repr_list
 
 
-def parse(row: "Row", *args, **kwargs) -> int | float:
+def parse(field: "Row", *args, **kwargs) -> int | float:
     result: int | float = 0
-    if 'f' in row.str_format and row.size == 4:
-        bytes_order: str = ["<", ">"][row.byte_order == "big"]
-        result = struct.unpack(f'{bytes_order}f', row.raw_val)[0]
+    if 'f' in field.str_format and field.size == 4:
+        bytes_order: str = ["<", ">"][field.byte_order == "big"]
+        result = struct.unpack(f'{bytes_order}f', field.raw_val)[0]
     else:
-        result = int.from_bytes(row.raw_val, row.byte_order,
-                                signed=row.signed)
+        result = int.from_bytes(field.raw_val, field.byte_order,
+                                signed=field.signed)
     return result
 
 
-def represent(row: "Row", *args, **kwargs) -> str:
-    if isinstance(row._parsed_val, float) and row.str_format == 'd':
-        row.str_format = '.2f'
-    result: str = f"{row.prefix}{row._parsed_val:{row.str_format}}"
+def represent(field: "Row", *args, **kwargs) -> str:
+    if isinstance(field._parsed_val, float) and field.str_format == 'd':
+        field.str_format = '.2f'
+    result: str = f"{field.prefix}{field._parsed_val:{field.str_format}}"
     return result
 
 
-def validate(row: "Row", *args, **kwargs) -> bool:
+def validate(field: "Row", *args, **kwargs) -> bool:
     try:
-        return row.min_value <= row._parsed_val <= row.max_value
+        return field.min_value <= field._parsed_val <= field.max_value
     except Exception:  # noqa: BLE001
         return True
