@@ -1,4 +1,7 @@
+import inspect
 from collections.abc import Sequence
+from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 from loguru import logger
@@ -8,11 +11,27 @@ if TYPE_CHECKING:
     from bytes_parser.row import Row
 
 
+@dataclass
+class Location:
+    module: str
+    filepath: Path
+
+
+def _initialization_location() -> Location | None:
+    frame = inspect.currentframe()
+    while frame:
+        if frame.f_code.co_name == '<module>':
+            return Location(frame.f_globals['__name__'],
+                            Path(frame.f_globals['__file__']))
+        frame = frame.f_back
+
+
 class Frame:
     def __init__(self, frame_type: str, rows: list["Row"],
                  byte_order: Literal['big', 'little'] = 'big',
                  use_frame_type_as_header: bool = True,
                  show_bits: Literal['auto', 'always'] = 'auto') -> None:
+        self._location: Location
         self.frame_type: str = frame_type
         self.rows: list[Row] = rows
         self.rows_dict: dict[str, Row] = {row.label: row for row in self.rows}
@@ -36,6 +55,19 @@ class Frame:
         self.use_frame_type_as_header: bool = use_frame_type_as_header
         self.update_offsets()
         self.check_labels()
+
+    def __new__(cls, *_args, **_kwargs):
+        obj = super().__new__(cls)
+        obj._location = _initialization_location()  # type: ignore
+        return obj
+
+    def get_location(self) -> Location:
+        return self._location
+
+    def inject_kwargs(self, kwargs: dict):
+        for row in self.rows:
+            row.kwargs.update(kwargs)
+        return self
 
     def check_labels(self):
         labels: list[str] = [row.label for row in self.rows]
