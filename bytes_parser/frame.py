@@ -92,8 +92,13 @@ class Frame:
             raw_data = bytes.fromhex(raw_data)
         table_rows: list[tuple] = self.parse_tuple(raw_data)
         header: str = ('Name', self.frame_type)[self.use_frame_type_as_header]
-        return DataFrame(table_rows, columns=[header, 'Value', 'Numeric', 'Hex',
-                                              'IsOK', 'ErrCnt'])
+        try:
+            df = DataFrame(table_rows, columns=[header, 'Value', 'Numeric', 'Hex',
+                                                'IsOK', 'ErrCnt'])
+            return df
+        except Exception as err:
+            logger.error(f'Failed to create dataframe {header}\n{table_rows}\n{err}')
+            raise
 
     def parse_tuple(self, raw_data: bytes) -> list[tuple]:
         table_rows: list[tuple] = []
