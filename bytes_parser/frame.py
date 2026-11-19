@@ -162,12 +162,19 @@ class Frame:
         for row in self.rows:
             row.clear_errors()
 
-    def __repr__(self) -> str:
+    def _orig_dataframe(self) -> DataFrame:
         table_rows: list[tuple[str, int, int]] = []
         for row in self.rows:
             table_rows.append((row.label, row.size, row._offset))
-        df = DataFrame(table_rows, columns=['Label', 'Size', 'Offset'])
+        return DataFrame(table_rows, columns=['Label', 'Size', 'Offset'])
+
+    def __repr__(self) -> str:
+        df: DataFrame = self._orig_dataframe()
         return df.to_string() + f'\nFull size: {self.full_size}'
+
+    def to_markdown(self):
+        df: DataFrame = self._orig_dataframe()
+        return df.to_markdown() + f'\nFull size: {self.full_size}'
 
     def from_frames(self, *frames: "Frame"):
         raw_data: bytes = b''
