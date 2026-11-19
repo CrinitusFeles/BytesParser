@@ -53,6 +53,8 @@ class BitField:
         self._raw: bytes = b''
         self._repr: str = ''
 
+        self._prev_parsed_val: int | float = 0
+
     def get_pos_range(self) -> list[int]:
         return list(range(self.pos, self.pos + self.length))
 

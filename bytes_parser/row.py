@@ -76,6 +76,8 @@ class Row:
         self._repr_bit_list: Sequence[BitField | BitFlag] = []
         self._repr_data: str = ''
 
+        self._prev_parsed_val: int | float = 0
+
     def _set_byte_order(self, byte_order: Literal['big', 'little']) -> None:
         self.byte_order = byte_order
 
@@ -100,6 +102,8 @@ class Row:
             bit.errors = 0
 
     def _parse(self, raw_data: bytes, all_bits: bool = False):
+        self._prev_parsed_val = self._parsed_val
+
         if self.size > 0:
             self.raw_val = raw_data[self._offset: self._offset + self.size]
             if len(self.bit_fields) > 0:

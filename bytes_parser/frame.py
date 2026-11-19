@@ -63,6 +63,7 @@ class Frame:
         self.update_offsets()
         self.check_labels()
         self._subscribers: SUBSCRIBERS = {}
+        self._parsed_count: int = 0
 
     def __new__(cls, *_args, **_kwargs):
         obj = super().__new__(cls)
@@ -123,6 +124,7 @@ class Frame:
             except Exception as err:
                 raise ValueError(f'Incorrect proccessing of {row.label} '\
                                  f'label: {err}') from err
+        self._parsed_count += 1
         return table_rows
 
     def _get_table_header(self) -> list[str]:

@@ -19,7 +19,7 @@ class CompositeFrame:
                 self.rows.append(row)
         self.frame = Frame(frame_type, self.rows, byte_order)
 
-    def from_frames(self, *frames: Frame) -> None | DataFrame:
+    def from_frames(self, *frames: Frame) -> DataFrame | None:
         raw_data: bytes = b''
         for frame_type, rows in self.rules.items():
             filtered: list = [f for f in frames if f.frame_type == frame_type]

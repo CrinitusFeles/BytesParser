@@ -26,6 +26,7 @@ def bit_fields(row: "Row",
             bit._repr = f'{bit._value}'
             repr_list.append(bit)
         elif isinstance(bit, BitField):
+            bit._prev_parsed_val = bit._value
             mask: int = 0
             mask = [mask := mask | (1 << i) for i in range(bit.length)][-1]
             bit._value = (val >> bit.pos) & mask
@@ -85,3 +86,51 @@ def check_warning(field: "Row", *args, **kwargs) -> bool:
         return field.warn_min_value >= field._parsed_val >= field.warn_max_value
     except Exception:  # ruff: ignore[blind-except]
         return False
+
+
+def check_constant(field: "Row", *args, **kwargs) -> bool:
+    if field._parent_frame and field._parent_frame._parsed_count > 1:
+        return field._parsed_val == field._prev_parsed_val
+    return True
+
+
+def check_non_constant(field: "Row", *args, **kwargs) -> bool:
+    if field._parent_frame and field._parent_frame._parsed_count > 1:
+        return field._parsed_val != field._prev_parsed_val
+    return True
+
+
+def check_increased(field: "Row", *args, **kwargs) -> bool:
+    if field._parent_frame and field._parent_frame._parsed_count > 1:
+        return field._parsed_val > field._prev_parsed_val
+    return True
+
+
+def check_decreased(field: "Row", *args, **kwargs) -> bool:
+    if field._parent_frame and field._parent_frame._parsed_count > 1:
+        return field._parsed_val < field._prev_parsed_val
+    return True
+
+
+def check_max_delta(field: "Row", *args, **kwargs) -> bool:
+    if len(args):
+        delta = args[0]
+    elif len(kwargs):
+        delta = kwargs.get('delta', 0)
+    else:
+        delta = 0
+    if delta > 0 and field._parent_frame and field._parent_frame._parsed_count > 1:
+        return abs(field._parsed_val - field._prev_parsed_val) > delta
+    return True
+
+
+def check_min_delta(field: "Row", *args, **kwargs) -> bool:
+    if len(args):
+        delta = args[0]
+    elif len(kwargs):
+        delta = kwargs.get('delta', 0)
+    else:
+        delta = 0
+    if delta > 0 and field._parent_frame and field._parent_frame._parsed_count > 1:
+        return abs(field._parsed_val - field._prev_parsed_val) < delta
+    return True
