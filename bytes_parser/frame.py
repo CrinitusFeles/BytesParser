@@ -162,19 +162,26 @@ class Frame:
         for row in self.rows:
             row.clear_errors()
 
-    def _orig_dataframe(self) -> DataFrame:
-        table_rows: list[tuple[str, int, int]] = []
-        for row in self.rows:
-            table_rows.append((row.label, row.size, row._offset))
-        return DataFrame(table_rows, columns=['Label', 'Size', 'Offset'])
+    def _orig_dataframe(self, show_bits: bool) -> DataFrame:
+        table_rows: list[tuple[int | str, str, int | str, int | str]] = []
+        for i, row in enumerate(self.rows):
+            table_rows.append((i, row.label, row.size, row._offset))
+            if show_bits:
+                for bit in row.bit_fields:
+                    table_rows.append(('', bit._repr_label, '', ''))
+        return DataFrame(table_rows, columns=['№', 'Label', 'Size', 'Offset'])
 
     def __repr__(self) -> str:
-        df: DataFrame = self._orig_dataframe()
-        return df.to_string() + f'\nFull size: {self.full_size}'
+        df: DataFrame = self._orig_dataframe(show_bits=False)
+        return df.to_string(index=False) + f'\nFull size: {self.full_size}'
 
-    def to_markdown(self):
-        df: DataFrame = self._orig_dataframe()
-        return df.to_markdown() + f'\nFull size: {self.full_size}'
+    def to_markdown(self, show_bits: bool) -> str:
+        df: DataFrame = self._orig_dataframe(show_bits)
+        return df.to_markdown(index=False) + f'\nFull size: {self.full_size}'
+
+    def to_string(self, show_bits: bool) -> str:
+        df: DataFrame = self._orig_dataframe(show_bits)
+        return df.to_string(index=True) + f'\nFull size: {self.full_size}'
 
     def from_frames(self, *frames: "Frame"):
         raw_data: bytes = b''
