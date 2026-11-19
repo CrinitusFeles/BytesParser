@@ -164,7 +164,7 @@ class Frame:
 
     def _orig_dataframe(self, show_bits: bool) -> DataFrame:
         table_rows: list[tuple[int | str, str, int | str, int | str]] = []
-        for i, row in enumerate(self.rows):
+        for i, row in enumerate(self.rows, start=1):
             table_rows.append((i, row.label, row.size, row._offset))
             if show_bits:
                 for bit in row.bit_fields:
