@@ -1,11 +1,13 @@
 import inspect
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 from loguru import logger
 from pandas import DataFrame
+
+from bytes_parser.notification import Notification
 
 if TYPE_CHECKING:
     from bytes_parser.row import Row
@@ -24,6 +26,11 @@ def _initialization_location() -> Location | None:
             return Location(frame.f_globals['__name__'],
                             Path(frame.f_globals['__file__']))
         frame = frame.f_back
+
+
+NOTIFICATION_CALLBACK = Callable[[list[Notification], list[Notification]], None]
+SUBSCRIBERS = dict[tuple[tuple[str, tuple[str, ...]] | str, ...],
+                   NOTIFICATION_CALLBACK]
 
 
 class Frame:
@@ -55,6 +62,7 @@ class Frame:
         self.use_frame_type_as_header: bool = use_frame_type_as_header
         self.update_offsets()
         self.check_labels()
+        self._subscribers: SUBSCRIBERS = {}
 
     def __new__(cls, *_args, **_kwargs):
         obj = super().__new__(cls)
@@ -91,6 +99,7 @@ class Frame:
         if isinstance(raw_data, str):
             raw_data = bytes.fromhex(raw_data)
         table_rows: list[tuple] = self.parse_tuple(raw_data)
+        self._call_subscribers()
         header: str = ('Name', self.frame_type)[self.use_frame_type_as_header]
         try:
             df = DataFrame(table_rows, columns=[header, 'Value', 'Numeric', 'Hex',
@@ -177,3 +186,48 @@ class Frame:
             logger.error('Failed to assemble frame')
             return None
         return self.parse(raw_data)
+
+    def subscribe(self, fields: list[str | tuple[str, list[str]]],
+                  callback: NOTIFICATION_CALLBACK) -> None:
+        hash_fields: tuple = tuple(field if isinstance(field, str)
+                                   else (field[0], tuple(field[1]))
+                                   for field in fields)
+        self._subscribers[hash_fields] = callback
+
+    def unsubscribe(self, fields: list[str | tuple[str, list[str]]]) -> None:
+        hash_fields: tuple = tuple(field if isinstance(field, str)
+                                   else (field[0], tuple(field[1]))
+                                   for field in fields)
+        self._subscribers.pop(hash_fields)
+
+    def _call_subscribers(self) -> None:
+        for subscriber, callback in self._subscribers.items():
+            err_notifications: list[Notification] = []
+            warn_notifications: list[Notification] = []
+            for field in subscriber:
+                level = 'error'
+                if isinstance(field, str):
+                    level = ('error', 'warning')[self.rows_dict[field]._is_warn]
+                    notif = Notification(self.rows_dict[field], level=level)
+
+                elif isinstance(field, tuple) and len(field) > 1:
+                    bits: list = []
+                    row = self.rows_dict[field[0]]
+                    for bf_label in field[1]:
+                        bit = row._bit_fields_kwarg[bf_label]
+                        if not bit.is_valid:
+                            bits.append(bit)
+                    if len(bits):
+                        level = 'error'
+                    else:
+                        level: str = ('error', 'warning')[row._is_warn]
+                    notif = Notification(row, bits, level)
+                else:
+                    logger.error(f'Incorrect subscriber format {field} for '\
+                                 f'frame {self.frame_type}')
+                    continue
+                if level == 'error':
+                    err_notifications.append(notif)
+                else:
+                    warn_notifications.append(notif)
+            callback(err_notifications, warn_notifications)

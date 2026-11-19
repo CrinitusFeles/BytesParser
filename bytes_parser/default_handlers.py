@@ -70,7 +70,18 @@ def represent(field: "Row", *args, **kwargs) -> str:
 
 
 def validate(field: "Row", *args, **kwargs) -> bool:
+    """ Returns `True` if field's value is valid.
+    `False` if value is out of OK ocndition """
     try:
         return field.min_value <= field._parsed_val <= field.max_value
     except Exception:  # noqa: BLE001
         return True
+
+
+def check_warning(field: "Row", *args, **kwargs) -> bool:
+    """ Returns `True` if field's value is out of normal condition.
+    `False` if value is OK """
+    try:
+        return field.warn_min_value >= field._parsed_val >= field.warn_max_value
+    except Exception:  # ruff: ignore[blind-except]
+        return False
