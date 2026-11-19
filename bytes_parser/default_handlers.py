@@ -89,30 +89,36 @@ def check_warning(field: "Row", *args, **kwargs) -> bool:
 
 
 def check_constant(field: "Row", *args, **kwargs) -> bool:
+    """ Returns `True` if previous values _equals_ current parsed value"""
     if field._parent_frame and field._parent_frame._parsed_count > 1:
         return field._parsed_val == field._prev_parsed_val
     return True
 
 
 def check_non_constant(field: "Row", *args, **kwargs) -> bool:
+    """ Returns `True` if previous value _NOT_ _equals_ current parsed value"""
     if field._parent_frame and field._parent_frame._parsed_count > 1:
         return field._parsed_val != field._prev_parsed_val
     return True
 
 
 def check_increased(field: "Row", *args, **kwargs) -> bool:
+    """ Returns `True` if previous value bigger than current parsed value"""
     if field._parent_frame and field._parent_frame._parsed_count > 1:
         return field._parsed_val > field._prev_parsed_val
     return True
 
 
 def check_decreased(field: "Row", *args, **kwargs) -> bool:
+    """ Returns `True` if previous value lower than current parsed value"""
     if field._parent_frame and field._parent_frame._parsed_count > 1:
         return field._parsed_val < field._prev_parsed_val
     return True
 
 
 def check_max_delta(field: "Row", *args, **kwargs) -> bool:
+    """ Returns `True` if absolute difference of previous value and current parsed value
+    less than passed integer arg value or kwarg='delta'"""
     if len(args):
         delta = args[0]
     elif len(kwargs):
@@ -125,6 +131,8 @@ def check_max_delta(field: "Row", *args, **kwargs) -> bool:
 
 
 def check_min_delta(field: "Row", *args, **kwargs) -> bool:
+    """ Returns `True` if absolute difference of previous value and current parsed value
+    more than passed integer arg value or kwarg=delta'"""
     if len(args):
         delta = args[0]
     elif len(kwargs):
