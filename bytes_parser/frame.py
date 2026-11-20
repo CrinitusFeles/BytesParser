@@ -216,34 +216,37 @@ class Frame:
                                    for field in fields)
         self._subscribers.pop(hash_fields)
 
+    def get_failed_params(self, fields: list[tuple[str, tuple[str, ...]] | str]):
+        err_notifications: list[Notification] = []
+        warn_notifications: list[Notification] = []
+        for field in fields:
+            level = 'error'
+            if isinstance(field, str):
+                level = ('error', 'warning')[self.rows_dict[field]._is_warn]
+                notif = Notification(self.rows_dict[field], level=level)
+
+            elif isinstance(field, tuple) and len(field) > 1:
+                bits: list = []
+                row = self.rows_dict[field[0]]
+                for bf_label in field[1]:
+                    bit = row._bit_fields_kwarg[bf_label]
+                    if not bit.is_valid:
+                        bits.append(bit)
+                # if len(bits):
+                #     level = 'error'
+                # else:
+                #     level: str = ('error', 'warning')[row._is_warn]
+                notif = Notification(row, bits, level)
+            else:
+                logger.error(f'Incorrect subscriber format {field} for '\
+                                f'frame {self.frame_type}')
+                continue
+            if level == 'error':
+                err_notifications.append(notif)
+            else:
+                warn_notifications.append(notif)
+        return err_notifications, warn_notifications
+
     def _call_subscribers(self) -> None:
         for subscriber, callback in self._subscribers.items():
-            err_notifications: list[Notification] = []
-            warn_notifications: list[Notification] = []
-            for field in subscriber:
-                level = 'error'
-                if isinstance(field, str):
-                    level = ('error', 'warning')[self.rows_dict[field]._is_warn]
-                    notif = Notification(self.rows_dict[field], level=level)
-
-                elif isinstance(field, tuple) and len(field) > 1:
-                    bits: list = []
-                    row = self.rows_dict[field[0]]
-                    for bf_label in field[1]:
-                        bit = row._bit_fields_kwarg[bf_label]
-                        if not bit.is_valid:
-                            bits.append(bit)
-                    if len(bits):
-                        level = 'error'
-                    else:
-                        level: str = ('error', 'warning')[row._is_warn]
-                    notif = Notification(row, bits, level)
-                else:
-                    logger.error(f'Incorrect subscriber format {field} for '\
-                                 f'frame {self.frame_type}')
-                    continue
-                if level == 'error':
-                    err_notifications.append(notif)
-                else:
-                    warn_notifications.append(notif)
-            callback(err_notifications, warn_notifications)
+            callback(*self.get_failed_params(list(subscriber)))

@@ -142,3 +142,9 @@ def check_min_delta(field: "Row", *args, **kwargs) -> bool:
     if delta > 0 and field._parent_frame and field._parent_frame._parsed_count > 1:
         return abs(field._parsed_val - field._prev_parsed_val) < delta
     return True
+
+def all_bitfields_ok(field: "Row", *args, **kwargs) -> bool:
+    return all(bit.is_valid for bit in field.bit_fields)
+
+def any_bitfield_failed(field: "Row", *args, **kwargs) -> bool:
+    return any(not bit.is_valid for bit in field.bit_fields)
