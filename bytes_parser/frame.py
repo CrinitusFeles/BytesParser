@@ -219,26 +219,31 @@ class Frame:
     def get_failed_params(self, fields: list[tuple[str, tuple[str, ...]] | str]):
         err_notifications: list[Notification] = []
         warn_notifications: list[Notification] = []
-        for field in fields:
+        for field_label in fields:
             level = 'error'
-            if isinstance(field, str):
-                level = ('error', 'warning')[self.rows_dict[field]._is_warn]
-                notif = Notification(self.rows_dict[field], level=level)
+            if isinstance(field_label, str):
+                row = self.rows_dict[field_label]
+                if row._is_valid:
+                    continue
+                level = ('error', 'warning')[row._is_warn]
+                notif = Notification(self.rows_dict[field_label], level=level)
 
-            elif isinstance(field, tuple) and len(field) > 1:
+            elif isinstance(field_label, tuple) and len(field_label) > 1:
                 bits: list = []
-                row = self.rows_dict[field[0]]
-                for bf_label in field[1]:
+                row = self.rows_dict[field_label[0]]
+                for bf_label in field_label[1]:
                     bit = row._bit_fields_kwarg[bf_label]
                     if not bit.is_valid:
                         bits.append(bit)
+                if not bits:
+                    continue
                 # if len(bits):
                 #     level = 'error'
                 # else:
                 #     level: str = ('error', 'warning')[row._is_warn]
                 notif = Notification(row, bits, level)
             else:
-                logger.error(f'Incorrect subscriber format {field} for '\
+                logger.error(f'Incorrect subscriber format {field_label} for '\
                                 f'frame {self.frame_type}')
                 continue
             if level == 'error':
